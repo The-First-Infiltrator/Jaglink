@@ -16,6 +16,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(JAGLINK_ENABLE_SANITIZERS "Enable AddressSanitizer and UndefinedBehaviorSanitizer" OFF)
 option(JAGLINK_BUILD_LINUX_APP "Build the native GTK4 Linux front end" OFF)
+option(JAGLINK_BUILD_WINDOWS_DISCOVER "Build the Windows OpenPort/J2534 discovery GUI" ${WIN32})
 
 if(JAGLINK_ENABLE_SANITIZERS)
     if(NOT CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
@@ -61,6 +62,8 @@ add_library(jaglink STATIC
     src/core/telemetry_store.c
     src/core/telemetry_csv.c
     src/core/isotp.c
+    src/discover/safety.c
+    src/discover/evidence.c
     src/elm327/elm327.c
     src/elm327/can.c
     src/elm327/session.c
@@ -77,6 +80,22 @@ target_link_libraries(jaglink PUBLIC InfiltratrCommon::Portable)
 set(JAGLINK_WARNING_FLAGS -Wall -Wextra -Wpedantic -Wshadow -Wformat=2 -Wstrict-prototypes -Wmissing-prototypes)
 if(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang|AppleClang")
     target_compile_options(jaglink PRIVATE ${JAGLINK_WARNING_FLAGS} -Werror)
+endif()
+
+if(JAGLINK_BUILD_WINDOWS_DISCOVER)
+    if(NOT WIN32)
+        message(FATAL_ERROR "JAGLINK_BUILD_WINDOWS_DISCOVER requires Windows.")
+    endif()
+    add_executable(jaglink-discover WIN32 app/windows/jaglink_discover.c)
+    target_link_libraries(jaglink-discover PRIVATE jaglink comdlg32)
+    target_compile_definitions(jaglink-discover PRIVATE
+        WIN32_LEAN_AND_MEAN NOMINMAX _CRT_SECURE_NO_WARNINGS)
+    if(MSVC)
+        target_compile_options(jaglink-discover PRIVATE /W4 /WX)
+    elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(jaglink-discover PRIVATE
+            ${JAGLINK_WARNING_FLAGS} -Werror)
+    endif()
 endif()
 
 if(JAGLINK_BUILD_LINUX_APP)
@@ -119,4 +138,6 @@ if(BUILD_TESTING)
     jaglink_add_test(jaglink-test-uds tests/test_uds.c)
     jaglink_add_test(jaglink-test-uds-dtc tests/test_uds_dtc.c)
     jaglink_add_test(jaglink-test-jaguar tests/test_jaguar.c)
+    jaglink_add_test(jaglink-test-discover-safety tests/test_discover_safety.c)
+    jaglink_add_test(jaglink-test-evidence tests/test_evidence.c)
 endif()

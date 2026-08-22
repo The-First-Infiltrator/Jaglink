@@ -20,3 +20,20 @@ xcodebuild -project app/ios/JAGLINK.xcodeproj \
 ```
 
 A recursive Git checkout is required so the directly pinned `src/infiltratr-common` shared-library submodule is present.
+
+## Unsigned physical-device IPA
+
+On macOS with Xcode installed, the repository script builds the Release target for generic physical iPhone hardware, verifies that the application binary contains arm64 code, packages the `.app` under `Payload/`, verifies the ZIP structure and writes a SHA-256 checksum:
+
+```sh
+scripts/build-ios-ipa.sh dist
+```
+
+Outputs:
+
+- `dist/JAGLINK-unsigned.ipa`
+- `dist/JAGLINK-unsigned.ipa.sha256`
+
+The IPA is intentionally unsigned. Installing it requires a separate signing process appropriate to the operator's Apple account and device.
+
+The GitHub Actions workflow **Build unsigned physical-device IPA** is manual (`workflow_dispatch`) rather than a claim that every source change has been physically installed. When run, it uses a macOS runner and uploads both files as the `JAGLINK-unsigned-physical-device` workflow artifact. A successful portable build on Linux or Windows does not establish that this physical-device build passed.

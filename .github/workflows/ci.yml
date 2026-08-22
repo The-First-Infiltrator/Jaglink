@@ -60,6 +60,28 @@ jobs:
       - name: Test
         run: ctest --test-dir build --output-on-failure
 
+  windows-discover:
+    name: Windows / OpenPort J2534 GUI
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Configure Win32 build
+        run: >-
+          cmake -S . -B build -A Win32
+          -DJAGLINK_BUILD_WINDOWS_DISCOVER=ON
+      - name: Build
+        run: cmake --build build --config Release --parallel
+      - name: Test portable safety and evidence paths
+        run: ctest --test-dir build -C Release --output-on-failure
+      - name: Upload jaglink-discover
+        uses: actions/upload-artifact@v4
+        with:
+          name: jaglink-discover-windows-x86
+          path: build/Release/jaglink-discover.exe
+          if-no-files-found: error
+
   sanitizers:
     name: Ubuntu / ASan + UBSan
     runs-on: ubuntu-latest
@@ -172,7 +194,7 @@ jobs:
 
   release:
     name: Publish GitHub Release
-    needs: [standalone-audit, portable-core, sanitizers, linux-shell, ios-simulator, iphone-device-ipa]
+    needs: [standalone-audit, portable-core, windows-discover, sanitizers, linux-shell, ios-simulator, iphone-device-ipa]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
